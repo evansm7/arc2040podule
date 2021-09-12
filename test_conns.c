@@ -3,7 +3,6 @@
  * A super-simple connection tester:  puts all GPIO into input, and prints which pins change
  * due to external (likely human-led) probing.
  *
- * Hit 'r' to reset sticky "have seen a change" state.
  */
 
 #include <stdio.h>
