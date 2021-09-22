@@ -11,9 +11,9 @@
 void	podule_if_init(void);
 void	podule_if_debug(void);
 
-extern uint8_t podule_space[];
+extern volatile uint8_t podule_space[];
 
-static uint8_t *podule_if_get_memspace(void)
+static volatile uint8_t *podule_if_get_memspace(void)
 {
         return &podule_space[0];
 }

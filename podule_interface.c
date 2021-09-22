@@ -36,7 +36,7 @@
  *
  *
  */
-uint8_t podule_space[4096];
+volatile uint8_t podule_space[4096];
 
 #define CFG_INPUT(x) do { \
                 gpio_init(x);   \

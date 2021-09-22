@@ -24,9 +24,9 @@ static void init_podule_space(void)
         /* Initialise the loader & reg spaces: */
 
         // FIXME: copy loader[]
-        uint8_t *p = podule_if_get_memspace();
+        volatile uint8_t *p = podule_if_get_memspace();
 
-        memset(&p[PODULE_MEM_LOADER], 0, 1024);
+        memset((void *)&p[PODULE_MEM_LOADER], 0, 1024);
 
         /* Product info: */
         p[3] = 0xab;
