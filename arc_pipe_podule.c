@@ -53,6 +53,7 @@ int main()
                ", built " __TIME__ " " __DATE__ "]\n");
 
         podule_if_init();
+        init_podule_space();
 
 	while (true) {
                 led_on();
