@@ -4,6 +4,7 @@
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
 #include "hardware/gpio.h"
+#include "hardware/sync.h"
 
 #define DEBUG 1
 
@@ -50,8 +51,9 @@ volatile uint8_t podule_space[4096];
 
 static uint32_t get_addr(uint32_t i)
 {
-        return ((i & (7 << GPIO_A2)) >> GPIO_A2) |        // A[4:2]
-                ((i & (0x1ff << GPIO_A5)) >> (GPIO_A5 - 3));
+        uint32_t j = i & (7 << GPIO_A2);
+        uint32_t k = i & (0x1ff << GPIO_A5);
+        return (j >> GPIO_A2) | (k >> (GPIO_A5 - 3));
 }
 
 static uint8_t  get_data(uint32_t i)
@@ -89,8 +91,10 @@ volatile uint32_t       dbg_trx_count = 0;
 
 static void podule_if_thread(void)
 {
+        save_and_disable_interrupts();
+        gpio_clr_mask(0xff << GPIO_D0);
         while (1) {
-                /* Simple bus interface operates with a state machine:
+                /* Simple bus interface operates as follows:
                  *
                  * Idle:        Wait for (/RD or /WR) and /SEL
                  *              Go to do_read or do_write
@@ -101,6 +105,12 @@ static void podule_if_thread(void)
                  *
                  * do_write:    Sample D inputs, store byte.  Wait for /WR (and /SEL)
                  *              to go inactive.  Return to idle.
+                 *
+                 * Synchronous cycles happen (e.g. PI/ECId); there's < 200ns between
+                 * /RD |_ and data needing to be ready (>=50ns setup before _|).
+                 *
+                 * Looking at compiler output, there are a couple of things that could
+                 * be improved using asm; this works but I'd like more margin.
                  */
                 uint32_t io = gpio_get_all();
 
@@ -108,18 +118,19 @@ static void podule_if_thread(void)
                         uint32_t addr = get_addr(io);
                         uint32_t data = podule_space[addr & 0xfff];
 
-                        gpio_put_masked(0xff << GPIO_D0,
-                                        data << GPIO_D0);
+                        gpio_set_mask(data << GPIO_D0); // Faster than gpio_put_masked()
                         data_outputs();
-
-                        dbg_info1 = 0x80000000 | addr | (data << 16);
+#ifdef DEBUG
+                        dbg_info1 = 0x80000000 | addr;
+#endif
 
                         // Wait for read cycle to finish:
                         do {
                                 io = gpio_get_all();
-                        } while(is_read(io));
+                        } while(is_selected(io)); // Hold after /RD rises
 
                         data_inputs();
+                        gpio_clr_mask(0xff << GPIO_D0);
                         dbg_trx_count++;
 
                 } else if (is_write(io)) {
@@ -128,9 +139,9 @@ static void podule_if_thread(void)
 
                         io = gpio_get_all();    // resample WR data (wait a bit?)
                         data = get_data(io);
-
+#ifdef DEBUG
                         dbg_info1 = 0xc0000000 | addr | (data << 16);
-
+#endif
                         if (addr >= 2048 && addr < 4096) {
                                 podule_space[addr] = data;
                         }
@@ -157,7 +168,7 @@ void	podule_if_init(void)
         CFG_INPUT(GPIO_NRST_I);
 
         for (int i = 0; i < 3; i++) {
-                CFG_INPUT(GPIO_A2 + i);
+                CFG_INPUT(GPIO_A2 + i);         // A2-A4
         }
         for (int i = 0; i < 9; i++) {
                 CFG_INPUT(GPIO_A5 + i);         // A5-A13
