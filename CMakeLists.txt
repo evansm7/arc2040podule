@@ -35,9 +35,7 @@ if (TARGET tinyusb_device)
   )
 
   target_link_libraries(firmware pico_stdlib pico_multicore)
-  # enable usb output, disable uart output
-  pico_enable_stdio_usb(firmware 1)
-  pico_enable_stdio_uart(firmware 0)
+  pico_enable_stdio_uart(firmware 1)
   pico_add_extra_outputs(firmware)
 elseif(PICO_ON_DEVICE)
    message(WARNING "not building firmware because TinyUSB submodule is not initialized in the SDK")
