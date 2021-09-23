@@ -13,9 +13,9 @@
 _start:
         //////////////////////////////////////////////////////////////////////
         // Podule loader header:
-        .long   read_byte
-        .long   write_byte
-        .long   reset
+        b       read_byte
+        b       write_byte
+        b       reset
         bics    pc, lr, #V_bit                 // CallLoader
 
 
