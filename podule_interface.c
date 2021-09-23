@@ -86,8 +86,12 @@ static void     data_outputs(void)
         gpio_set_dir_out_masked(0xff << GPIO_D0);
 }
 
-volatile uint32_t       dbg_info1 = 0;
-volatile uint32_t       dbg_trx_count = 0;
+volatile uint32_t       dbg_rd_addr = 0;
+volatile uint32_t       dbg_rd_data = 0;
+volatile uint32_t       dbg_rd_count = 0;
+volatile uint32_t       dbg_wr_addr = 0;
+volatile uint32_t       dbg_wr_data = 0;
+volatile uint32_t       dbg_wr_count = 0;
 
 static void podule_if_thread(void)
 {
@@ -121,7 +125,9 @@ static void podule_if_thread(void)
                         gpio_set_mask(data << GPIO_D0); // Faster than gpio_put_masked()
                         data_outputs();
 #ifdef DEBUG
-                        dbg_info1 = 0x80000000 | addr;
+                        dbg_rd_addr = addr;
+                        dbg_rd_data = data;
+                        dbg_rd_count++;
 #endif
 
                         // Wait for read cycle to finish:
@@ -131,8 +137,6 @@ static void podule_if_thread(void)
 
                         data_inputs();
                         gpio_clr_mask(0xff << GPIO_D0);
-                        dbg_trx_count++;
-
                 } else if (is_write(io)) {
                         uint32_t addr = get_addr(io);
                         uint32_t data;
@@ -140,7 +144,9 @@ static void podule_if_thread(void)
                         io = gpio_get_all();    // resample WR data (wait a bit?)
                         data = get_data(io);
 #ifdef DEBUG
-                        dbg_info1 = 0xc0000000 | addr | (data << 16);
+                        dbg_wr_addr = addr;
+                        dbg_wr_data = data;
+                        dbg_wr_count++;
 #endif
                         if (addr >= 2048 && addr < 4096) {
                                 podule_space[addr] = data;
@@ -149,8 +155,6 @@ static void podule_if_thread(void)
                         do {
                                 io = gpio_get_all();
                         } while(is_write(io));
-
-                        dbg_trx_count++;
                 }
         }
 }
@@ -187,11 +191,13 @@ void	podule_if_debug(void)
 {
         uint32_t i = gpio_get_all();
 
-        printf("A = %04x, D[7:0] = %02x, NSEL%d, NRD%d, NWR%d, NRST%d, %08x, %d\n",
+        printf("A %04x, D %02x, NSEL%d, NRD%d, NWR%d, NRST%d; R %04x, %02x, %d; W %04x, %02x, %d\n",
                get_addr(i), get_data(i),
                gpio_get(GPIO_NSEL),
                gpio_get(GPIO_NRD),
                gpio_get(GPIO_NWR),
                gpio_get(GPIO_NRST_I),
-               dbg_info1, dbg_trx_count);
+               dbg_rd_addr, dbg_rd_data, dbg_rd_count,
+               dbg_wr_addr, dbg_wr_data, dbg_wr_count
+                );
 }
