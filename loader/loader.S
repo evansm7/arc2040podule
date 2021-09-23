@@ -25,9 +25,9 @@ reset:
         and     r2, r11, r2
         add     r2, r2, #PR_BASE
         add     r2, r2, #PR_RESET << 2
-        ldr     r3, [r2]
+        ldrb    r3, [r2]
         add     r3, r3, #1
-        str     r3, [r2]
+        strb    r3, [r2]
 
         mvn     r3, #0
         str     r3, current_page
