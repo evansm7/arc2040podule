@@ -19,21 +19,21 @@
 #include "podule_interface.h"
 
 
+extern uint8_t podule_header, podule_header_end;
+
 static void init_podule_space(void)
 {
         /* Initialise the loader & reg spaces: */
 
-        // FIXME: copy loader[]
         volatile uint8_t *p = podule_if_get_memspace();
 
-        memset((void *)&p[PODULE_MEM_LOADER], 0, 1024);
+        /* In first 1KB, header/loader live: */
+        memcpy((void *)p, &podule_header, &podule_header_end - &podule_header);
 
-        /* Product info: */
-        p[3] = 0xab;
-        p[4] = 0xcd;
-        /* Manuf info: */
-        p[5] = 0xb3;
-        p[6] = 0x3f;
+        /* In second KB, the ROM space paged window: */
+        /* FIXME: copy page 0 */
+
+        /* In third/fourth KB, the registers. */
 
         /* Overall layout of regs:
          * +0   PAGE_REG_L
@@ -42,6 +42,7 @@ static void init_podule_space(void)
          *      Write page number 0-2047 >> 8
          *      Set bit 7 to load; cleared once page is loaded
          */
+        memset((void *)&p[2048], 0, 2048);
 }
 
 int main()

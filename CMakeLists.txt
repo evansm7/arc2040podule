@@ -31,6 +31,7 @@ if (TARGET tinyusb_device)
   add_executable(firmware
     arc_pipe_podule.c
     podule_interface.c
+    payload.S
   )
 
   target_link_libraries(firmware pico_stdlib pico_multicore)
