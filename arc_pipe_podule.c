@@ -97,7 +97,7 @@ int main()
                 if ((loops & 0x0fffff) == 0)
                         led_on();
 
-                if ((loops & 0x0fffff) > 0x10000)
+                if ((loops & 0x0fffff) > 0x01000)
                         led_off();
 
                 if ((loops & 0x1fffff) == 0)
