@@ -27,16 +27,49 @@ endif()
 
 # Target 2:
 
+set(PODULE_MODULES "${PODULE_MODULES}" CACHE STRING "Space-separated list of Relocatable Modules to include in the ROM image" FORCE)
+message(STATUS "Module list: ${PODULE_MODULES}")
+
+# This is pretty hacky (ME doesn't know cmake).  Ideas for improvement are to
+# track the inputs (loader, PODULE_MODULES) as explicit deps, and make these
+# build commands execute only if necessary.
+add_custom_target(payload_build
+  COMMAND echo "Building podule header"
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/mk_chunk_dir.py -H -d "ArcPipePodule" -s "0001" -l ${CMAKE_CURRENT_SOURCE_DIR}/loader/loader.bin -o ${CMAKE_BINARY_DIR}/payload_podule_header.bin
+  COMMAND echo "Building podule ROM"
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/mk_chunk_dir.py -o ${CMAKE_BINARY_DIR}/payload_podule_rom.bin ${PODULE_MODULES}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+  )
+
+set_target_properties(payload_build
+  PROPERTIES
+  ADDITIONAL_CLEAN_FILES "${CMAKE_BINARY_DIR}/payload_podule_header.bin;${CMAKE_BINARY_DIR}/payload_podule_rom.bin"
+  )
+
+add_custom_target(loader_build
+  COMMAND echo "Building loader" && make
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/loader
+)
+
+set_target_properties(loader_build
+  PROPERTIES
+  ADDITIONAL_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/loader/loader.elf;${CMAKE_CURRENT_SOURCE_DIR}/loader/loader.bin"
+  )
+
 if (TARGET tinyusb_device)
   add_executable(firmware
     arc_pipe_podule.c
     podule_interface.c
     payload.S
-  )
+    )
+  add_dependencies(firmware payload_build)
+  add_dependencies(payload_build loader_build)
 
   target_link_libraries(firmware pico_stdlib pico_multicore)
   pico_enable_stdio_uart(firmware 1)
   pico_add_extra_outputs(firmware)
+
 elseif(PICO_ON_DEVICE)
    message(WARNING "not building firmware because TinyUSB submodule is not initialized in the SDK")
 endif()
+
