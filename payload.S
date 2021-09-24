@@ -7,4 +7,10 @@ podule_header:
         .incbin "payload_podule_header.bin"
 podule_header_end:
 
+        .align 4
+        .global podule_rom, podule_rom_end
+podule_rom:
+        .incbin "payload_podule_rom.bin"
+podule_rom_end:
+
         .end

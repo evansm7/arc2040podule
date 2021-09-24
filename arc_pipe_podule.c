@@ -17,9 +17,22 @@
 #include "hw.h"
 #include "version.h"
 #include "podule_interface.h"
+#include "podule_regs.h"
 
 
-extern uint8_t podule_header, podule_header_end;
+extern uint8_t podule_header[], podule_header_end[];
+extern uint8_t podule_rom[], podule_rom_end[];
+
+static void podule_rom_switch_page(uint16_t page)
+{
+        volatile uint8_t *p = podule_if_get_memspace();
+
+        if (page*1024 < (podule_rom_end - podule_rom)) {
+                memcpy((void *)&p[1024], podule_rom + (page*1024), 1024);
+        } else {
+                printf("%s: Argh! page %d is off the end!\n", __FUNCTION__, page);
+        }
+}
 
 static void init_podule_space(void)
 {
@@ -28,10 +41,10 @@ static void init_podule_space(void)
         volatile uint8_t *p = podule_if_get_memspace();
 
         /* In first 1KB, header/loader live: */
-        memcpy((void *)p, &podule_header, &podule_header_end - &podule_header);
+        memcpy((void *)p, podule_header, podule_header_end - podule_header);
 
         /* In second KB, the ROM space paged window: */
-        /* FIXME: copy page 0 */
+        podule_rom_switch_page(0);
 
         /* In third/fourth KB, the registers. */
 
@@ -45,6 +58,23 @@ static void init_podule_space(void)
         memset((void *)&p[2048], 0, 2048);
 }
 
+static void podule_poll(void)
+{
+        // Check for page register access:
+        volatile uint8_t *p = podule_if_get_memspace();
+
+        if (p[PR_OFFSET + PR_PAGE_H] & 0x80) {
+                uint16_t page = (((uint16_t)(p[PR_OFFSET + PR_PAGE_H] & 0x7f)) << 8) |
+                        p[PR_OFFSET + PR_PAGE_L];
+                podule_rom_switch_page(page);
+                // barrier
+
+                // Clear handshake flag:
+                p[PR_OFFSET + PR_PAGE_H] &= ~0x80;
+                printf("-- Set page 0x%x\n", page);
+        }
+}
+
 int main()
 {
 	stdio_init_all();
@@ -56,13 +86,22 @@ int main()
         podule_if_init();
         init_podule_space();
 
-	while (true) {
-                led_on();
-		sleep_ms(100);
-                led_off();
-		sleep_ms(200);
+        printf("Initialised.\n");
 
-                podule_if_debug();
+        unsigned int loops = 0;
+	while (true) {
+                podule_poll();
+
+                loops++;
+
+                if ((loops & 0x0fffff) == 0)
+                        led_on();
+
+                if ((loops & 0x0fffff) > 0x10000)
+                        led_off();
+
+                if ((loops & 0x1fffff) == 0)
+                        podule_if_debug();
 	}
 
 	return 0;
