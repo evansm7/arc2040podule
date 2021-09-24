@@ -28,7 +28,7 @@ static void podule_rom_switch_page(uint16_t page)
         volatile uint8_t *p = podule_if_get_memspace();
 
         if (page*1024 < (podule_rom_end - podule_rom)) {
-                memcpy((void *)&p[1024], podule_rom + (page*1024), 1024);
+                memcpy((void *)&p[PR_ROM_PAGE_OFFSET], podule_rom + (page*1024), 1024);
         } else {
                 printf("%s: Argh! page %d is off the end!\n", __FUNCTION__, page);
         }
@@ -55,7 +55,7 @@ static void init_podule_space(void)
          *      Write page number 0-2047 >> 8
          *      Set bit 7 to load; cleared once page is loaded
          */
-        memset((void *)&p[2048], 0, 2048);
+        memset((void *)&p[PR_OFFSET], 0, 2048);
 }
 
 static void podule_poll(void)
