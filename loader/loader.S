@@ -88,7 +88,11 @@ write_byte:
 
         //////////////////////////////////////////////////////////////////////
         // Vars
+        /* Mask: applied to address, can be used to clear [20:19], forcing
+         * a slow cycle.  The default (sync?) access is OK on stock A3000 tho.
+         */
 mask:           .long   0x03fff000
+        /* Slow cycles: .long   0x03fff000 & ~(3<<19) */
 current_page:   .long   ~0
 
 
