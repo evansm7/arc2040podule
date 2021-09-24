@@ -201,6 +201,7 @@ def help():
     print("\t -p <text>         Add place string")
     print("\t -n <text>         Add part number")
     print("\t -l <filename>     Add Loader")
+    print("\t -r <size>         Round/pad output size up")
     print("\t -o <filename>     Output file (required)")
     print()
 
@@ -216,10 +217,11 @@ text_mod = None
 text_place = None
 text_part = None
 loader = None
+round_size = 0
 modules = []
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "hHP:M:d:D:s:S:p:n:l:o:")
+    opts, args = getopt.getopt(sys.argv[1:], "hHP:M:d:D:s:S:p:n:l:o:r:")
 except getopt.GetoptError as err:
     help()
     fatal("Invocation error: " + str(err))
@@ -250,6 +252,8 @@ for o, a in opts:
         loader = a
     elif o == "-o":
         outfile = a
+    elif o == "-r":
+        round_size = int(a, 0)
     else:
         help()
         fatal("Unknown option?")
@@ -324,11 +328,17 @@ if module_names and len(module_names) > 0:
 
 print(cd.describe())
 
-#output = header + cd.render()
+output = header + cd.render()
+
+if round_size > 0:
+    l = len(output)
+    pad_with = (round_size - (l % round_size)) % round_size
+    print("Rounding output size %d to %d\n" % (l, l+pad_with))
+    output = output + bytearray(pad_with)
 
 print("Writing '" + outfile + "'")
 with open(outfile, 'wb') as d:
-    d.write(header + cd.render())
+    d.write(output)
     d.close()
 
 print("Finished.\n")
