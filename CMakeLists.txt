@@ -62,6 +62,7 @@ if (TARGET tinyusb_device)
     podule_interface.c
     payload.S
     usb_descriptors.c
+    pipe_packet.c
     )
   add_dependencies(firmware payload_build)
   add_dependencies(payload_build loader_build)

@@ -19,6 +19,8 @@
 #include "version.h"
 #include "podule_interface.h"
 #include "podule_regs.h"
+#include "pipe_packet.h"
+
 
 #define RESET_HOST_ON_STARTUP
 
@@ -52,6 +54,8 @@ static void init_podule_space(void)
 
         volatile uint8_t *r = podule_if_get_regs();
         memset((void *)r, 0, 2048);
+
+        pipe_init();
 }
 
 static unsigned int reset_generation = 0;
@@ -82,7 +86,13 @@ static void podule_poll(void)
         // Check for reset request
         if (r[PR_RESET] != reset_generation) {
                 reset_generation = r[PR_RESET];
+                pipe_init();
         }
+
+        /* The more complex packet interface registers are dealt with in here.
+         * NOTE:  The USB comms polling also occurs in here.
+         */
+        pipe_poll();
 }
 
 int main()
@@ -108,7 +118,6 @@ int main()
 	while (true) {
                 tud_task();
                 podule_poll();
-                comms_poll();
 
                 if ((loops & 0x0fffff) == 0)
                         led_on();
