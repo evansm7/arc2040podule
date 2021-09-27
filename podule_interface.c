@@ -300,3 +300,10 @@ void	podule_if_debug(void)
                 );
 #endif
 }
+
+void    podule_if_reset_host(void)
+{
+        gpio_put(GPIO_HRST, true);
+        sleep_ms(50);
+        gpio_put(GPIO_HRST, false);
+}

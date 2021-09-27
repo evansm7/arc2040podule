@@ -10,6 +10,7 @@
 
 void	podule_if_init(void);
 void	podule_if_debug(void);
+void    podule_if_reset_host(void);
 
 extern volatile uint8_t podule_space[];
 
