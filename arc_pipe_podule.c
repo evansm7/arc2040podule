@@ -20,6 +20,7 @@
 #include "podule_interface.h"
 #include "podule_regs.h"
 
+#define RESET_HOST_ON_STARTUP
 
 extern uint8_t podule_header[], podule_header_end[];
 extern uint8_t podule_rom[], podule_rom_end[];
@@ -97,6 +98,11 @@ int main()
         init_podule_space();
 
         printf("Initialised.\n");
+
+#ifdef RESET_HOST_ON_STARTUP
+        podule_if_reset_host();
+        printf("Host reset.\n");
+#endif
 
         unsigned int loops = 0;
 	while (true) {
