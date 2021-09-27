@@ -13,7 +13,8 @@
 #include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
-#include "podule_interface.h"
+#include "tusb.h"
+
 #include "hw.h"
 #include "version.h"
 #include "podule_interface.h"
@@ -75,10 +76,24 @@ static void podule_poll(void)
         }
 }
 
+static uint8_t rx_buf[1024];
+
+static void comms_poll(void)
+{
+        /* Simple data sink for now.
+         * Note 0 is the interface; there might be several.
+         */
+        if (tud_cdc_n_connected(0) && tud_cdc_n_available(0)) {
+                unsigned int count = tud_cdc_n_read(0, rx_buf, sizeof(rx_buf));
+                printf("+++ Rx'd %d bytes from USB\n", count);
+        }
+}
+
 int main()
 {
 	stdio_init_all();
 	io_init();
+        tusb_init();
 
 	printf("[Arc pipe podule firmware version " VERSION      \
                ", built " __TIME__ " " __DATE__ "]\n");
@@ -90,9 +105,9 @@ int main()
 
         unsigned int loops = 0;
 	while (true) {
+                tud_task();
                 podule_poll();
-
-                loops++;
+                comms_poll();
 
                 if ((loops & 0x0fffff) == 0)
                         led_on();
@@ -100,8 +115,10 @@ int main()
                 if ((loops & 0x0fffff) > 0x01000)
                         led_off();
 
-                if ((loops & 0x1fffff) == 0)
+                if ((loops & 0x1fffff) == 0) {
                         podule_if_debug();
+                }
+                loops++;
 	}
 
 	return 0;

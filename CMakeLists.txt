@@ -61,11 +61,20 @@ if (TARGET tinyusb_device)
     arc_pipe_podule.c
     podule_interface.c
     payload.S
+    usb_descriptors.c
     )
   add_dependencies(firmware payload_build)
   add_dependencies(payload_build loader_build)
 
-  target_link_libraries(firmware pico_stdlib pico_multicore)
+  message("Adding ${PICO_SDK_PATH}/lib/tinyusb/src to include path")
+  target_include_directories(firmware PRIVATE ${PICO_SDK_PATH}/lib/tinyusb/src)
+  target_include_directories(firmware PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/)
+
+  target_link_libraries(firmware
+    pico_stdlib
+    pico_multicore
+    tinyusb_device_unmarked
+    )
   pico_enable_stdio_uart(firmware 1)
   pico_add_extra_outputs(firmware)
 
