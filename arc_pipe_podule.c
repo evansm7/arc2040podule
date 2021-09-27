@@ -26,10 +26,10 @@ extern uint8_t podule_rom[], podule_rom_end[];
 
 static void podule_rom_switch_page(uint16_t page)
 {
-        volatile uint8_t *p = podule_if_get_memspace();
+        volatile uint8_t *p = podule_if_get_rom_window();
 
         if (page*1024 < (podule_rom_end - podule_rom)) {
-                memcpy((void *)&p[PR_ROM_PAGE_OFFSET], podule_rom + (page*1024), 1024);
+                memcpy((void *)p, podule_rom + (page*1024), 1024);
         } else {
                 printf("%s: Argh! page %d is off the end!\n", __FUNCTION__, page);
         }
@@ -39,53 +39,48 @@ static void init_podule_space(void)
 {
         /* Initialise the loader & reg spaces: */
 
-        volatile uint8_t *p = podule_if_get_memspace();
+        volatile uint8_t *l = podule_if_get_loader();
 
         /* In first 1KB, header/loader live: */
-        memcpy((void *)p, podule_header, podule_header_end - podule_header);
+        memcpy((void *)l, podule_header, podule_header_end - podule_header);
 
         /* In second KB, the ROM space paged window: */
         podule_rom_switch_page(0);
 
         /* In third/fourth KB, the registers. */
 
-        /* Overall layout of regs:
+        volatile uint8_t *r = podule_if_get_regs();
+        memset((void *)r, 0, 2048);
+}
+
+static unsigned int reset_generation = 0;
+
+static void podule_poll(void)
+{
+        volatile uint8_t *r = podule_if_get_regs();
+
+        /* Check for page register access:
+         *
          * +0   PAGE_REG_L
          *      Write page number 0-2047 & 0xff
          * +1   PAGE_REG_H
          *      Write page number 0-2047 >> 8
          *      Set bit 7 to load; cleared once page is loaded
          */
-        memset((void *)&p[PR_OFFSET], 0, 2048);
-}
-
-static void podule_poll(void)
-{
-        // Check for page register access:
-        volatile uint8_t *p = podule_if_get_memspace();
-
-        if (p[PR_OFFSET + PR_PAGE_H] & 0x80) {
-                uint16_t page = (((uint16_t)(p[PR_OFFSET + PR_PAGE_H] & 0x7f)) << 8) |
-                        p[PR_OFFSET + PR_PAGE_L];
+        if (r[PR_PAGE_H] & 0x80) {
+                uint16_t page = (((uint16_t)(r[PR_PAGE_H] & 0x7f)) << 8) |
+                        r[PR_PAGE_L];
                 podule_rom_switch_page(page);
                 // barrier
 
                 // Clear handshake flag:
-                p[PR_OFFSET + PR_PAGE_H] &= ~0x80;
+                r[PR_PAGE_H] &= ~0x80;
                 printf("-- Set page 0x%x\n", page);
         }
-}
 
-static uint8_t rx_buf[1024];
-
-static void comms_poll(void)
-{
-        /* Simple data sink for now.
-         * Note 0 is the interface; there might be several.
-         */
-        if (tud_cdc_n_connected(0) && tud_cdc_n_available(0)) {
-                unsigned int count = tud_cdc_n_read(0, rx_buf, sizeof(rx_buf));
-                printf("+++ Rx'd %d bytes from USB\n", count);
+        // Check for reset request
+        if (r[PR_RESET] != reset_generation) {
+                reset_generation = r[PR_RESET];
         }
 }
 
