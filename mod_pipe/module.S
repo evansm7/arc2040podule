@@ -19,6 +19,7 @@
 #define WORKSPACE_SZ    4096
 #define WS_HW           0
 #define WS_TX_HEAD      4
+#define WS_RX_TAIL      8
 #define WS_SCRATCH      3072
 
         .text
@@ -96,6 +97,7 @@ init:
         str     r11, [r12, #WS_HW]
         mov     r0, #0
         str     r0, [r12, #WS_TX_HEAD]
+        str     r0, [r12, #WS_RX_TAIL]
 
         adr     r0, str_found
         swi     SWI_OS_WRITE0 | SWI_X
@@ -123,7 +125,19 @@ cmd_table:
         .byte   0       // Flags
         .long   0       // No syntax error message
         .long   0       // No help message
-        .align
+
+        .asciz  "pi"    // "pipe info"
+        .align  2       // Word-align
+        .long   cmd_pipeinfo
+        // Flags word:
+        .byte   0       // Min params
+        .byte   0       // No GSTrans
+        .byte   0       // Max params
+        .byte   0       // Flags
+        .long   0       // No syntax error message
+        .long   0       // No help message
+
+        .long   0       // End
 
 cmd_pipetest:
         // r0 = command tail (preserve)
@@ -168,6 +182,65 @@ cmd_pipetest:
         ldmfd   r13!, {r0-r12, pc}^
 
 
+cmd_pipeinfo:
+        // r0 = command tail (preserve)
+        // r1 = number of OSCLI parameters
+        // r12 = pointer to module private word
+
+        stmfd   r13!, {r0-r12, lr}
+
+        ldr     r12, [r12]      // Workspace pointer
+
+        // Construct data to send (nice if it's generally human-readable):
+        add     r0, r12, #WS_SCRATCH
+
+        // Message 0 on CID 1 = GetInfo
+        mov     r2, #0
+        strb    r2, [r0]
+        // r0 = pointer, r1 = len, r2 = CID, r12=workspace
+        mov     r1, #1
+        mov     r2, #1
+        bl      pipe_packet_tx
+
+#if DEBUG > 2
+        mov     r0, #'T'
+        swi     SWI_OS_WRITEC | SWI_X
+        swi     SWI_OS_NEWLINE | SWI_X
+#endif
+
+        add     r0, r12, #WS_SCRATCH
+        bl      pipe_packet_rx
+        // FIXME: Assert returned CID matches 1 too?  Expecting GetInfoResp
+#if DEBUG > 2
+        mov     r0, #'R'
+        swi     SWI_OS_WRITEC | SWI_X
+        swi     SWI_OS_NEWLINE | SWI_X
+#endif
+
+        // Print CID:
+        mov     r0, r2
+        bl      print_hex8
+        mov     r0, #':'
+        swi     SWI_OS_WRITEC | SWI_X
+        // Print len:
+        mov     r0, r1
+        bl      print_hex32
+        mov     r0, #':'
+        swi     SWI_OS_WRITEC | SWI_X
+        // Print protocol version:
+        add     r10, r12, #WS_SCRATCH
+        ldr     r0, [r10, #0]
+        bl      print_hex32
+        mov     r0, #':'
+        swi     SWI_OS_WRITEC | SWI_X
+        // Print version string:
+        add     r0, r10, #4
+        swi     SWI_OS_WRITE0 | SWI_X
+        swi     SWI_OS_NEWLINE | SWI_X
+
+        ldmfd   r13!, {r0-r12, pc}^
+
+
         //////////////////////////////////////////////////////////////////////
         // Pipe packet routines
 
@@ -202,7 +275,7 @@ pipe_packet_tx:
 
         // Find head index:
         ldr     r1, [r12, #WS_TX_HEAD]
-#if DEBUG > 0
+#if DEBUG > 1
         mov     r0, r1
         bl      print_hex8
         swi     SWI_OS_NEWLINE
@@ -236,6 +309,7 @@ pipe_packet_tx:
         beq     2f
         subs    r5, r5, #1
         beq     tx_timeout
+        b       1b
 2:
 
         // Move on head pointer:
@@ -249,11 +323,109 @@ tx_timeout:
         adr     r0, err_tx_timeout
         b       fail_err_return
 
+
+        //////////////////////////////////////////////////////////////////////
+
+        // Wait for a packet.
+        // r0 = packet data buffer (of max size), r12 = workspace
+        // Returns r1 = len, r2 = CID
+pipe_packet_rx:
+        stmfd   r13!, {r3-r12, lr}      // FIXME: Reduce regs
+
+        ldr     r10, [r12, #WS_HW]
+        add     r10, r10, #PR_BASE                      // r10 = registers
+        // Regs are lower 8b of each 32b word in this space.
+
+        mov     r11, r0
+        // Find tail index:
+        ldr     r8, [r12, #WS_RX_TAIL]
+#if DEBUG > 1
+        mov     r9, r0
+        mov     r0, r8
+        bl      print_hex8
+        swi     SWI_OS_NEWLINE
+        mov     r0, r9
+#endif
+        // Find appropriate RX descriptor:
+        add     r2, r10, #PR_RX0_0 << 2                 // r2 = Addr of RX descr 0
+        add     r3, r2, r8, lsl#2+2                     // r3 = Descr N
+
+#if DEBUG > 2
+        mov     r0, r3
+        bl      print_hex32
+        swi     SWI_OS_NEWLINE
+#endif
+
+        // Poll for ready:
+        mov     r5, #0x100000                           // Long timeout
+1:      ldrb    r6, [r3, #12]                           // Check top bit
+        tst     r6, #0x80
+        bne     2f
+        subs    r5, r5, #1
+        beq     rx_timeout
+        b       1b
+2:
+        // Get full descriptor:
+        ldrb    r4, [r3, #0]
+        ldrb    r5, [r3, #4]
+        orr     r4, r4, r5, lsl#8
+        ldrb    r5, [r3, #8]
+        orr     r4, r4, r5, lsl#16
+        orr     r4, r4, r6, lsl#24
+#if DEBUG > 2
+        mov     r0, r4
+        bl      print_hex32
+        swi     SWI_OS_NEWLINE
+#endif
+
+        // Glean info from it:
+        mov     r1, r4, lsl#32-PR_DESCR_SIZE_SHIFT-9
+        mov     r1, r1, lsr#32-9                        // r1 = len
+        mov     r2, r4, lsl#32-PR_DESCR_CID_SHIFT-7
+        mov     r2, r2, lsr#32-7                        // r2 = CID
+        mov     r4, r4, lsl#32-PR_DESCR_ADDR_SHIFT-9
+        mov     r4, r4, lsr#32-7                        // r4 = addr
+
+        mov     r0, r11
+        // Copy packet from RX_BUFFER to data buffer @r0:
+        add     r9, r10, #PR_RX_BUFFERS << 2
+        add     r9, r9, r4                              // r9 = RX_buf + addr
+        mov     r4, r1                                  // len
+1:      ldrb    r5, [r9], #4
+        strb    r5, [r0], #1
+        subs    r4, r4, #1
+        bgt     1b
+        // FIXME: That's the worst memcpy evar.
+
+        // Finally, consume the packet by clearing descr top bit
+        strb    r4, [r3, #12]                           // r4 = 0
+
+        // Move on tail pointer:
+        add     r8, r8, #1
+        and     r8, r8, #7
+        str     r8, [r12, #WS_RX_TAIL]
+done:
+        // Done!
+        // r1 = len, r2 = CID, buffer filled
+        ldmfd   r13!, {r3-r12, pc}^
+
+rx_timeout:
+        adr     r0, err_rx_timeout
+        ldmfd   r13!, {r3-r12,lr}
+        orr     pc, lr, #0x10000000
+
+
 str_hw_at:      .asciz  "Hardware address: "
         .align
+
 err_tx_timeout:
         .long   0xdeadf00d
         .asciz  "Timed out waiting for TX descriptor"
+        .align
+
+err_rx_timeout:
+        .long   0xdeadf00e
+        .asciz  "Timed out waiting for RX descriptor"
         .align
 
         //////////////////////////////////////////////////////////////////////
