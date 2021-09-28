@@ -6,6 +6,9 @@ include(pico_sdk_import.cmake)
 
 project(arc2040podule)
 
+set(PICO_BOARD 2040podule)
+set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
+
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
@@ -28,7 +31,7 @@ endif()
 # Target 2:
 
 set(PODULE_MODULES "${PODULE_MODULES}" CACHE STRING "Space-separated list of Relocatable Modules to include in the ROM image" FORCE)
-message(STATUS "Module list: ${PODULE_MODULES}")
+message(STATUS "Included Relocatable Module list: ${PODULE_MODULES}")
 
 # This is pretty hacky (ME doesn't know cmake).  Ideas for improvement are to
 # track the inputs (loader, PODULE_MODULES) as explicit deps, and make these
