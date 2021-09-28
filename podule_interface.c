@@ -129,7 +129,7 @@ static void __no_inline_not_in_flash_func(podule_if_thread)(void)
                         // Lower bits A[4:2]:
                         "mov    %1, %[addrl_mask]       \n"
                         "and    %1, %1, %0              \n"
-                        // Trick: Shift A[4:2] field right by adding to self:
+                        // Trick: Shift A[4:2] field left by adding to self:
                         "add    %1, %1, %2              \n"
                         "asr    %1, %1, %[shr_a2]       \n"
                         // %1 now contains the address as A[11:0].  Get read data:
