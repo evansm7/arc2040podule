@@ -85,6 +85,7 @@ static void podule_poll(void)
 
         // Check for reset request
         if (r[PR_RESET] != reset_generation) {
+                printf("-- Reset request\n");
                 reset_generation = r[PR_RESET];
                 pipe_init();
         }
