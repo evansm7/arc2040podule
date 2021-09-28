@@ -63,6 +63,7 @@ if (TARGET tinyusb_device)
     payload.S
     usb_descriptors.c
     pipe_packet.c
+    utils.c
     )
   add_dependencies(firmware payload_build)
   add_dependencies(payload_build loader_build)
