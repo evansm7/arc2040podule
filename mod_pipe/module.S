@@ -314,7 +314,7 @@ pipe_packet_tx:
 
         // Move on head pointer:
         add     r1, r1, #1
-        and     r1, r1, #7
+        and     r1, r1, #PR_DESCRS_MASK
         str     r1, [r12, #WS_TX_HEAD]
 
         ldmfd   r13!, {r0-r12, pc}^
@@ -402,7 +402,7 @@ pipe_packet_rx:
 
         // Move on tail pointer:
         add     r8, r8, #1
-        and     r8, r8, #7
+        and     r8, r8, #PR_DESCRS_MASK
         str     r8, [r12, #WS_RX_TAIL]
 done:
         // Done!

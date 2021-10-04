@@ -33,6 +33,9 @@
 #define PR_DESCR_SIZE(x)        ( ((x) & PR_DESCR_SIZE_MASK) >> PR_DESCR_SIZE_SHIFT )
 #define PR_DESCR_CID(x)         ( ((x) & PR_DESCR_CID_MASK) >> PR_DESCR_CID_SHIFT )
 
+#define PR_NUM_DESCRS   2       // Po2
+#define PR_DESCRS_MASK  (PR_NUM_DESCRS-1)
+
 #define PR_TX_TAIL      0x40
 #define PR_RX_HEAD      0x41
 
@@ -44,6 +47,7 @@
 #define PR_TX1_1        0x85
 #define PR_TX1_2        0x86
 #define PR_TX1_3        0x87
+// Unused, but reserved:
 #define PR_TX2_0        0x88
 #define PR_TX2_1        0x89
 #define PR_TX2_2        0x8a
@@ -77,6 +81,7 @@
 #define PR_RX1_1        0xa5
 #define PR_RX1_2        0xa6
 #define PR_RX1_3        0xa7
+// Unused, but reserved:
 #define PR_RX2_0        0xa8
 #define PR_RX2_1        0xa9
 #define PR_RX2_2        0xaa

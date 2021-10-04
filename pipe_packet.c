@@ -43,7 +43,8 @@ void    pipe_init(void)
         volatile uint8_t *r = podule_if_get_regs();
 
         // Reset packet registers
-        memset((void *)&r[PR_TX0_0], 0, 8*4*2);
+        memset((void *)&r[PR_TX0_0], 0, PR_NUM_DESCRS*4);
+        memset((void *)&r[PR_RX0_0], 0, PR_NUM_DESCRS*4);
         r[PR_TX_TAIL] = 0;
         r[PR_RX_HEAD] = 0;
 
@@ -64,7 +65,7 @@ static void     pipe_tx_done(void)
         // Descriptor clean/non-ready:
         PR_TX_DESCR(r, tail) = PR_TX_DESCR(r, tail) & ~(PR_DESCR_READY);
         // Move on tail pointer:
-        tail = (tail + 1) & 7;
+        tail = (tail + 1) & PR_DESCRS_MASK;
         r[PR_TX_TAIL] = tail;
 }
 
@@ -232,7 +233,7 @@ static bool     pipe_rx_packet(uint8_t cid, uint16_t len, uint8_t *data)
 
         state.rx_last_descr = head;
         // Move on head pointer:
-        head = (head + 1) & 7;
+        head = (head + 1) & PR_DESCRS_MASK;
         r[PR_RX_HEAD] = head;
 
         return true;
