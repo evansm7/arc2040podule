@@ -21,7 +21,7 @@ This project also includes a _proof-of-concept_ USB communications pipe, permitt
 > PICO_SDK_PATH=~/src/pico-sdk/ PICO_TOOLCHAIN_PATH=/usr/local/gcc-arm-embedded \
   cmake .. -DPODULE_MODULES=./mod_pipe/module
 
-Add on other modules by extending `PODULE_MODULES` (e.g. `PODULE_MODULES="./mod_pipe/module /path/thingy,ffa"`).  They're automatically loaded by RISC OS.
+Add on other modules by extending `PODULE_MODULES` with semicolons (e.g. `PODULE_MODULES="./mod_pipe/module;/path/thingy,ffa"`).  They're automatically loaded by RISC OS.
 
 ## Sub-projects
 
