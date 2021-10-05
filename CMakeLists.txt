@@ -59,6 +59,16 @@ set_target_properties(loader_build
   ADDITIONAL_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/loader/loader.elf;${CMAKE_CURRENT_SOURCE_DIR}/loader/loader.bin"
   )
 
+add_custom_target(mod_pipe_build
+  COMMAND echo "Building mod_pipe" && make
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod_pipe
+)
+
+set_target_properties(mod_pipe_build
+  PROPERTIES
+  ADDITIONAL_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/mod_pipe/module.elf;${CMAKE_CURRENT_SOURCE_DIR}/mod_pipe/module"
+  )
+
 if (TARGET tinyusb_device)
   add_executable(firmware
     arc_pipe_podule.c
@@ -70,6 +80,7 @@ if (TARGET tinyusb_device)
     )
   add_dependencies(firmware payload_build)
   add_dependencies(payload_build loader_build)
+  add_dependencies(payload_build mod_pipe_build)
 
   message("Adding ${PICO_SDK_PATH}/lib/tinyusb/src to include path")
   target_include_directories(firmware PRIVATE ${PICO_SDK_PATH}/lib/tinyusb/src)
