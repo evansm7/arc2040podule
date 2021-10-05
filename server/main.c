@@ -19,6 +19,8 @@
 #include <string.h>
 #include <endian.h>
 
+#include "channels.h"
+
 #define DEBUG 2
 
 #define TTY_DEVICE      "/dev/ttyACM0"  // FIXME: cmdline option!
@@ -45,16 +47,13 @@ typedef struct {
         uint8_t sizeh;
 } pkt_header_t;
 
-// Channel types
-#define CID_IGNORE                      0
-#define CID_HOSTINFO                    1
-#define CID_HOSTINFO_PROTO_VERSION      1
-#define CID_HOSTINFO_STRING             "ArcPipePodule host server" // 28 max
 
 ////////////////////////////////////////////////////////////////////////////////
 // Utils
 
-static void pretty_hexdump(uint8_t *r, unsigned int len)
+// scandir/opendir
+
+static void     pretty_hexdump(uint8_t *r, unsigned int len)
 {
         unsigned int left = len;
         for (int i = 0; i < len; i += 16) {
@@ -73,7 +72,7 @@ static void pretty_hexdump(uint8_t *r, unsigned int len)
         }
 }
 
-static void     send_packet(unsigned int cid, unsigned int len, uint8_t *data)
+void            send_packet(unsigned int cid, unsigned int len, uint8_t *data)
 {
         if (tx_len != -1) {
                 // FIXME, TX is rubbish, needs a queue
@@ -94,7 +93,7 @@ static void     send_packet(unsigned int cid, unsigned int len, uint8_t *data)
 ////////////////////////////////////////////////////////////////////////////////
 // Channel Hostinfo
 
-static void     channel_hostinfo_rx(uint8_t *data, unsigned int len)
+void            channel_hostinfo_rx(uint8_t *data, unsigned int len)
 {
         if (data[0] == 0) {
 #if DEBUG > 1
@@ -113,7 +112,7 @@ static void     channel_hostinfo_rx(uint8_t *data, unsigned int len)
                 strncpy(response.hinfo, CID_HOSTINFO_STRING, 28);
                 response.pad = 0;
 
-                send_packet(1, sizeof(response), (uint8_t *)&response);
+                send_packet(CID_HOSTINFO, sizeof(response), (uint8_t *)&response);
         } else {
                 printf("hostinfo: Odd byte 0: 0x%x\n", data[0]);
         }
@@ -136,6 +135,10 @@ static void     process_packet(unsigned int cid, unsigned int len, uint8_t *data
 
         case CID_HOSTINFO:
                 channel_hostinfo_rx(data, len);
+                break;
+
+        case CID_RAWFILE:
+                channel_rawfile_rx(data, len);
                 break;
         }
 }
@@ -249,6 +252,8 @@ static int      open_device(char *path)
 
 static void     service_loop(int fd)
 {
+        channel_rawfile_init();
+
         while (1) {
                 struct pollfd pfd = {
                         .fd = fd,
@@ -276,7 +281,7 @@ static void     service_loop(int fd)
         }
 }
 
-int     main(void)
+int             main(void)
 {
         while (1) {
                 int fd;
