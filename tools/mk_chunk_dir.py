@@ -1,14 +1,40 @@
 #!/usr/bin/env python3
 #
-# Create a simple podule header for the RP2040 Arc Pipe Podule,
-# with a chunk directory containing:
+# Create an Acorn RISC OS podule chunk directory containing one or more of:
 #
 # - Info strings
 # - Loader entry
+# - Relocatable Modules
 #
-# (Hmm, or make generic, without header, and create just a chunk dir/load modules.)
+# A podule header/ECId can be optionally prepended too.  Typically a podule ROM
+# image would contain two chunk directories (two invocations of this program):
+# the first has a podule header and chunk directory containing the loader & ID
+# strings, and the second (in the ROM body as accessed by the loader) containing
+# the payload Relocatable Modules themselves.
 #
 # ME 22 Sept 2021
+#
+# MIT License
+#
+# Copyright (c) 2021 Matt Evans
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 
 import os

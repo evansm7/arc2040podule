@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * Derived from tusb cdc example, ME 27 Sep 2021
+ * Derived from tusb cdc example, by Matt Evans, 27 Sep 2021
  */
 
 #include "tusb.h"
