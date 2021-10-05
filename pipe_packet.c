@@ -260,7 +260,7 @@ static void     pipe_rx(void)
                  * non-zero so that this receive places data at the end of
                  * previous data: */
                 len = tud_cdc_n_read(0, &state.rx_buf[state.rx_pos],
-                                       sizeof(state.rx_buf) - state.rx_pos);
+                                     sizeof(state.rx_buf) - state.rx_pos);
 #if DEBUG > 0
                 printf("[pipe RX %d bytes]\n", len);
 #endif
@@ -274,8 +274,8 @@ static void     pipe_rx(void)
                 uint16_t data_len = state.rx_buf[1] | ((uint32_t)state.rx_buf[2] << 8);
                 state.rx_total = PKT_HDR_SIZE + data_len;
 #if DEBUG > 2
-                printf("[pipe RX packet header: CID%d, size %d]\n",
-                       state.rx_buf[0], state.rx_total);
+                printf("[pipe RX packet header: CID%d, size %d (data size %d)]\n",
+                       state.rx_buf[0], state.rx_total, data_len);
 #endif
                 // Did we get all of it?
                 if (state.rx_pos >= state.rx_total) {
@@ -285,15 +285,18 @@ static void     pipe_rx(void)
                                                        &state.rx_buf[PKT_HDR_SIZE]);
 #if DEBUG > 1
                         if (accepted) {
-                                printf("[pipe RX packet complete: CID%d, size %d]\n",
-                                       state.rx_buf[0], state.rx_total);
+                                printf("[pipe RX packet complete: CID%d, size %d"
+                                        " (data size %d)]\n",
+                                       state.rx_buf[0], state.rx_total,
+                                       data_len);
                         } else {
                                 // Rate-limit this!
                                 static int last_count = ~0;
                                 if (pkt_counter != last_count) {
                                         printf("[pipe RX packet stalled: "
-                                               "CID%d, size %d]\n",
-                                               state.rx_buf[0], state.rx_total);
+                                               "CID%d, size %d (data size %d)]\n",
+                                               state.rx_buf[0], state.rx_total,
+                                               data_len);
                                         last_count = pkt_counter;
                                 }
                         }
