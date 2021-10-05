@@ -30,7 +30,7 @@
 
 #define PR_DESCR_IS_READY(x)    ( !!((x) & PR_DESCR_READY) )
 #define PR_DESCR_ADDR(x)        ( ((x) & PR_DESCR_ADDR_MASK) >> PR_DESCR_ADDR_SHIFT )
-#define PR_DESCR_SIZE(x)        ( ((x) & PR_DESCR_SIZE_MASK) >> PR_DESCR_SIZE_SHIFT )
+#define PR_DESCR_SIZE(x)        ( (((x) & PR_DESCR_SIZE_MASK) >> PR_DESCR_SIZE_SHIFT) + 1 )
 #define PR_DESCR_CID(x)         ( ((x) & PR_DESCR_CID_MASK) >> PR_DESCR_CID_SHIFT )
 
 #define PR_NUM_DESCRS   2       // Po2

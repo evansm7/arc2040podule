@@ -263,6 +263,7 @@ pipe_packet_tx:
         bne     1b
         // FIXME: That's the worst memcpy evar.
 
+        sub     r1, r1, #1                              // SIZE specified as (length-1)
         // Construct a TX descriptor:
         mov     r9, #0 << PR_DESCR_ADDR_SHIFT           // TX data at buffer idx 0
         mov     r1, r1, lsl#23                          // clear bits 9 up
@@ -380,7 +381,8 @@ pipe_packet_rx:
 
         // Glean info from it:
         mov     r1, r4, lsl#32-PR_DESCR_SIZE_SHIFT-9
-        mov     r1, r1, lsr#32-9                        // r1 = len
+        mov     r1, r1, lsr#32-9
+        add     r1, r1, #1                              // r1 = len
         mov     r2, r4, lsl#32-PR_DESCR_CID_SHIFT-7
         mov     r2, r2, lsr#32-7                        // r2 = CID
         mov     r4, r4, lsl#32-PR_DESCR_ADDR_SHIFT-9

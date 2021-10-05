@@ -227,7 +227,7 @@ static bool     pipe_rx_packet(uint8_t cid, uint16_t len, uint8_t *data)
         memcpy((void *)&r[PR_RX_BUFFERS + addr], data, len);
         // Once data is in place, construct the descriptor -- making it ready:
         PR_RX_DESCR(r, head) = ((uint32_t)cid << PR_DESCR_CID_SHIFT) |
-                ((uint32_t)len << PR_DESCR_SIZE_SHIFT) |
+                ((uint32_t)(len-1) << PR_DESCR_SIZE_SHIFT) |
                 (addr << PR_DESCR_ADDR_SHIFT) |
                 PR_DESCR_READY;
 
