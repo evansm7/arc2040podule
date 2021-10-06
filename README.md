@@ -4,11 +4,13 @@ v0.1
 
 5 October 2021
 
-This repository contains firmware for the _Arc Pipe Podule_. (TBD: Link to PCB design repository.)  This podule is based on the Raspberry Pi RP2040 MCU, and firmware builds using the `pico-sdk`.  The podule contains 2MB+ of flash, and has a USB device port that can be used for comms to a host.
+This repository contains firmware for the _Arc Pipe Podule_.  (PCB design files can be found in the [arc2040podule-hw repo](https://github.com/evansm7/arc2040podule-hw).)
+
+This expansion card ("podule") is based on the Raspberry Pi RP2040 MCU, and firmware builds using the [Raspberry Pi pico-sdk](https://github.com/raspberrypi/pico-sdk).  The podule contains 2MB+ of flash, and has a USB device port that can be used for comms to a host.
 
 The firmware provides the read/write bus bitbanging infrastructure, and presents a corresponding RISC OS loader to provide a large expansion ROM space (limited by the podule's SPI flash, usually 2MB-8MB).  This works reliably.
 
-This project also includes a _proof-of-concept_ USB communications pipe, permitting the Arc to make requests over USB to the host (a server running on Linux).  This is very much WIP; the design is being tinkered with and is evolving, particularly the protocols and services.  This comprises a RISC OS Relocatable Module (called *mod_pipe*) and a Linux host server program (imaginitively, *server*).
+This project also includes a **proof-of-concept USB communications pipe**, permitting the Arc to make requests over USB to the host (a server running on Linux).  This is very much WIP; the design is being tinkered with and is evolving, particularly the protocols and services.  This comprises a RISC OS Relocatable Module (called *mod_pipe*) and a Linux host server program (imaginitively, *server*).
 
 What's this useful for?  Well, at a minimum and ignoring USB, it's an easily-reflashable ROM card that can be used to provide filesystems/drivers/files at boot.
 
