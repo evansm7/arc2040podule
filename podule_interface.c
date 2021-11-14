@@ -81,9 +81,14 @@ volatile uint8_t podule_space[4096];
 #ifdef DEBUG
 static uint32_t get_addr(uint32_t i)
 {
+#if BOARD_HW == 1
         uint32_t j = i & (7 << GPIO_A2);
         uint32_t k = i & (0x1ff << GPIO_A5);
         return (j >> GPIO_A2) | (k >> (GPIO_A5 - 3));
+#elif BOARD_HW == 2
+        uint32_t j = i & (0xfff << GPIO_A2);
+        return (j >> GPIO_A2);
+#endif
 }
 
 static uint8_t  get_data(uint32_t i)
@@ -150,6 +155,7 @@ static void __no_inline_not_in_flash_func(podule_if_thread)(void)
                         "b      pif_wait_strobe         \n"
 
                         "pif_rd:                        \n"
+#if BOARD_HW == 1
                         // Construct address (make these pins contiguous on V2!):
                         "mov    %2, %[addr_mask]        \n"
                         // Addr bits from input pins:
@@ -160,6 +166,12 @@ static void __no_inline_not_in_flash_func(podule_if_thread)(void)
                         // Trick: Shift A[4:2] field left by adding to self:
                         "add    %1, %1, %2              \n"
                         "asr    %1, %1, %[shr_a2]       \n"
+#elif BOARD_HW == 2
+                        // Construct address
+                        "mov    %1, %[addr_mask]        \n"
+                        "and    %1, %1, %0              \n"
+                        "asr    %1, %1, %[shr_a2]       \n"
+#endif
                         // %1 now contains the address as A[11:0].  Get read data:
                         "ldrb   %0, [%[ps], %1]         \n"
                         // Set GPIO data output value:
@@ -189,6 +201,7 @@ static void __no_inline_not_in_flash_func(podule_if_thread)(void)
                         "b      pif_mainloop            \n"
 
                         "pif_wr:                        \n"
+#if BOARD_HW == 1
                         // Construct address, as above:
                         "mov    %2, %[addr_mask]        \n"
                         "and    %2, %2, %0              \n"
@@ -196,6 +209,11 @@ static void __no_inline_not_in_flash_func(podule_if_thread)(void)
                         "and    %1, %1, %0              \n"
                         "add    %1, %1, %2              \n"
                         "asr    %1, %1, %[shr_a2]       \n"
+#elif BOARD_HW == 2
+                        "mov    %1, %[addr_mask]        \n"
+                        "and    %1, %1, %0              \n"
+                        "asr    %1, %1, %[shr_a2]       \n"
+#endif
                         // Extract data (valid at /WR falling edge):
                         "mov    %2, #0xff               \n" // D[7:0] mask
                         "and    %0, %0, %2              \n"
@@ -248,9 +266,12 @@ static void __no_inline_not_in_flash_func(podule_if_thread)(void)
                         [rd_sel_mask]"h"( (1 << GPIO_NSEL) | (1 << GPIO_NRD) ),
                         [wr_sel_mask]"h"( (1 << GPIO_NSEL) | (1 << GPIO_NWR) ),
                         [sel_mask]"h"( 1 << GPIO_NSEL ),
+#if BOARD_HW == 1
                         [addrl_mask]"h"( (7 << GPIO_A2) ),
                         [addr_mask]"h"( (0x1ff << GPIO_A5) | (7 << GPIO_A2) ),
-
+#elif BOARD_HW == 2
+                        [addr_mask]"h"( (0xfff << GPIO_A2) ),
+#endif
                         /* Offsets of GPIO registers: */
                         [in]"i"(offsetof(sio_hw_t, gpio_in)),
                         [setmask]"i"(offsetof(sio_hw_t, gpio_set)),
@@ -270,7 +291,11 @@ static void __no_inline_not_in_flash_func(podule_if_thread)(void)
                         [dbg_w_count]"i"(offsetof(struct _debug, wr_count)),
 #endif
                         /* Misc constants: */
+#if BOARD_HW == 1
                         [shr_a2]"i"(GPIO_A2 + 1)
+#elif BOARD_HW == 2
+                        [shr_a2]"i"(GPIO_A2)
+#endif
                         );
         }
 }
@@ -285,6 +310,7 @@ void	podule_if_init(void)
         CFG_INPUT(GPIO_NSEL);
         CFG_INPUT(GPIO_NRD);
         CFG_INPUT(GPIO_NWR);
+#if BOARD_HW == 1
         CFG_INPUT(GPIO_NRST_I);
 
         for (int i = 0; i < 3; i++) {
@@ -293,6 +319,11 @@ void	podule_if_init(void)
         for (int i = 0; i < 9; i++) {
                 CFG_INPUT(GPIO_A5 + i);         // A5-A13
         }
+#elif BOARD_HW == 2
+        for (int i = 0; i < 12; i++) {
+                CFG_INPUT(GPIO_A2 + i);         // A2-A13
+        }
+#endif
 
         // Control outputs:
         gpio_put(GPIO_HIRQ, false);             // Don't assert IRQ
@@ -317,12 +348,18 @@ void	podule_if_debug(void)
 #ifdef DEBUG
         uint32_t i = gpio_get_all();
 
-        printf("A:%04x, D:%02x, NSEL%d, NRD%d, NWR%d, NRST%d; R %04x, %02x, %d; W %04x, %02x, %d\n",
+        printf("A:%04x, D:%02x, NSEL%d, NRD%d, NWR%d"
+#if BOARD_HW == 1
+               ", NRST%d"
+#endif
+               "; R %04x, %02x, %d; W %04x, %02x, %d\n",
                get_addr(i), get_data(i),
                gpio_get(GPIO_NSEL),
                gpio_get(GPIO_NRD),
                gpio_get(GPIO_NWR),
+#if BOARD_HW == 1
                gpio_get(GPIO_NRST_I),
+#endif
                debug.rd_addr, debug.rd_data, debug.rd_count,
                debug.wr_addr, debug.wr_data, debug.wr_count
                 );

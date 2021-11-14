@@ -59,6 +59,14 @@ endif()
 set(PODULE_MODULES "${PODULE_MODULES}" CACHE STRING "Space-separated list of Relocatable Modules to include in the ROM image" FORCE)
 message(STATUS "Included Relocatable Module list: ${PODULE_MODULES}")
 
+if (NOT BOARD_HW)
+  set(BOARD_HW "2")
+else()
+  set(BOARD_HW "${BOARD_HW}")
+endif()
+unset(BOARD_HW CACHE)
+message(STATUS "Board HW rev: ${BOARD_HW}")
+
 # This is pretty hacky (ME doesn't know cmake).  Ideas for improvement are to
 # track the inputs (loader, PODULE_MODULES) as explicit deps, and make these
 # build commands execute only if necessary.
@@ -107,6 +115,7 @@ if (TARGET tinyusb_device)
   add_dependencies(firmware payload_build)
   add_dependencies(payload_build loader_build)
   add_dependencies(payload_build mod_pipe_build)
+  add_compile_definitions(BOARD_HW=${BOARD_HW})
 
   message("Adding ${PICO_SDK_PATH}/lib/tinyusb/src to include path")
   target_include_directories(firmware PRIVATE ${PICO_SDK_PATH}/lib/tinyusb/src)

@@ -35,10 +35,20 @@
 #define GPIO_HRST	10
 #define GPIO_NRD	11
 #define GPIO_NWR	12
+#if BOARD_HW == 1
 #define GPIO_A2		13      // to 15 for A4
 #define GPIO_NRST_I	16
 #define GPIO_A5		17	// to 25 for A13
 #define GPIO_LED	29
+
+#elif BOARD_HW == 2
+#define GPIO_A2		13      // to 24 for A13
+#define GPIO_LED	25
+
+#else
+#error "Unknown board HW revision"
+#endif
+
 
 static void	led_state(bool b)
 {
@@ -60,7 +70,6 @@ static void	io_init(void)
 {
 	gpio_init(GPIO_LED);
 	gpio_set_dir(GPIO_LED, GPIO_OUT);
-        gpio_set_drive_strength(GPIO_LED, GPIO_DRIVE_STRENGTH_2MA);
 	led_off();
 }
 
